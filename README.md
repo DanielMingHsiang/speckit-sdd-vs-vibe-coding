@@ -1,2 +1,45 @@
-# speckit-sdd-vs-vibe-coding
-使用 Github Spec-Kit 透過 SDD 方式寫 AWS 證照模擬試題複習網頁，並與使用 Vibe Coding 方式做比較
+# 概述
+嘗試使用 Github Spec-Kit 進行規格驅動開發 (Spec-Driven Development, SDD)，並與自從 GenAI 火熱起來後社群文化非常流行的 Vibe Coding 進行使用上、開發流程上的差異比較，並且記錄 Vibe Coding、SDD、TDD 的概念。
+
+# Vibe Coding
+## 是什麼？
+- 不是一個正式的 computer science term，比較像社群文化。
+- 大意是：不是很嚴肅地在做 Task 或 Project，而是**跟著感覺寫、跟著靈感 freestyle 走。**
+- vibe coding 場景：
+    |  範例                        | 說明                                    |
+    | ------------------------------ | ------------------------------------ |
+    | 開個 VSCode, 寫邏輯、調效果    | 它不是要 deliver feature, 是享受 flow 狀態  |
+    | 不先寫 spec, 直接做原型        | 不把問題拆太細、先動手感受                   |
+    | 偏向草稿的程式開發              | 不是寫 production code，是 sketching code |
+- 不是技術術語而是一種 **coding 心態 / 工作 flow**。先不管 code 是不是最嚴謹，邊做邊產生想法。
+---
+- 流行原因：
+    - **GenAI coding 模式出現後「先動手⭢再 refine」變超有效**，享受用「需求描述」的方式寫程式。
+    - 給模型一句 prompt⭢AI spit 出一些 code⭢跑跑看，更改 prompt⭢迭代直到好看/好用。比「先花Ｘ天寫 PRD」更快看到產品雛形的感受。 
+- 一句話總結：vibe coding = coding as creative flow，不是 coding as “執行任務”。
+## 缺點
+- 雖然有它的「爽感」但以正式產品角度來說很危險。
+    1. 很容易變成 **丟棄式程式碼**
+        - 因為不是先定 spec、也沒有邏輯分層。
+        - 寫起來像草圖，結果：不好拆 component、難 refactor、難擴充。
+    2. 大部分 vibe code 只能 demo 不能上 production。
+    3. 決策品質低、偏異程度高
+        - 因為靠「感覺」，容易限縮於目前最想做的**單點功能**會忽略 edge case / failure mode。
+    4. debug 惡夢
+        - vibe coding 通常會直接把變數丟來丟去，所以「局部程式錯誤」會很難回溯。
+        - 有時候自己寫的 code 過段時間都看不懂，AI 短時間寫大量程式碼，然後一直修正不了錯誤，你會想幫它 debug 嗎？
+    5. Knowledge 不會被沉澱
+        - 因為沒有用 spec 把規格與需求記下來，最後會忘記「為什麼要這樣寫」。
+        - 後面的人很難接手，難以繼承 「AI 的即興發揮智慧」，只好再叫 AI 即性發揮下去。
+- 一句話收斂：vibe coding 是 prototype 加速器，不是 delivery 正式產品的系統。只適合「需求還沒被固定」的階段。
+- 來自社群的一張梗圖：
+
+![image](images/vibe-coding-mock.png)
+---
+
+
+
+
+---
+
+## 案例

@@ -1,5 +1,9 @@
-# 概述
-嘗試使用 Github Spec-Kit 進行規格驅動開發 (Spec-Driven Development, SDD)，並與自從 GenAI 火熱起來後社群文化非常流行的 Vibe Coding 進行使用上的差異比較，並且記錄 Vibe Coding、SDD、TDD 的概念。
+<p align="center">
+    <strong>嘗試使用 Github Spec-Kit 進行規格驅動開發 (Spec-Driven Development, SDD)，與自從 GenAI 火熱起來後社群文化非常流行的 Vibe Coding 進行使用上的差異比較，</strong>
+</p>
+<p align="center">
+    <strong>以及記錄 Vibe Coding、SDD、TDD 的概念。</strong>
+</p>
 
 # 氛圍式編碼 (Vibe Coding)
 ## 是什麼？

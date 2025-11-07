@@ -1,0 +1,420 @@
+/**
+ * 主要樣式檔案
+ * AWS 證照考題複習網頁的全域樣式
+ */
+
+// 引入變數
+@import './variables.scss';
+
+// 引入桌面版覆蓋樣式
+@import './desktop-override.scss';
+
+// ============================================================================
+// 全域重置與基礎樣式
+// ============================================================================
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  line-height: $line-height-normal;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: $font-family-primary;
+  font-size: $font-size-md;
+  color: $text-primary;
+  background-color: $background-primary;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ============================================================================
+// 標題樣式
+// ============================================================================
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 $spacing-md 0;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-tight;
+}
+
+h1 {
+  font-size: $font-size-xxxl;
+  color: $primary-color;
+}
+
+h2 {
+  font-size: $font-size-xxl;
+}
+
+h3 {
+  font-size: $font-size-xl;
+}
+
+h4 {
+  font-size: $font-size-lg;
+}
+
+h5, h6 {
+  font-size: $font-size-md;
+}
+
+// ============================================================================
+// 文字與段落樣式
+// ============================================================================
+
+p {
+  margin: 0 0 $spacing-md 0;
+  line-height: $line-height-relaxed;
+}
+
+strong, b {
+  font-weight: $font-weight-semibold;
+}
+
+em, i {
+  font-style: italic;
+}
+
+code {
+  font-family: $font-family-monospace;
+  background-color: $background-secondary;
+  padding: 2px 4px;
+  border-radius: $border-radius-sm;
+  font-size: 0.9em;
+}
+
+// ============================================================================
+// 列表樣式
+// ============================================================================
+
+ul, ol {
+  margin: 0 0 $spacing-md 0;
+  padding-left: $spacing-lg;
+}
+
+li {
+  margin-bottom: $spacing-xs;
+  line-height: $line-height-relaxed;
+}
+
+// ============================================================================
+// 按鈕基礎樣式
+// ============================================================================
+
+.btn {
+  @include button-reset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-sm $spacing-md;
+  border: $border-width solid transparent;
+  border-radius: $border-radius-md;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  text-decoration: none;
+  transition: all $transition-fast;
+  cursor: pointer;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  // 主要按鈕
+  &--primary {
+    background-color: $primary-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: darken($primary-color, 10%);
+    }
+  }
+
+  // 次要按鈕
+  &--secondary {
+    background-color: transparent;
+    color: $primary-color;
+    border-color: $primary-color;
+
+    &:hover:not(:disabled) {
+      background-color: $primary-color;
+      color: white;
+    }
+  }
+
+  // 警告按鈕
+  &--warning {
+    background-color: $secondary-color;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background-color: darken($secondary-color, 10%);
+    }
+  }
+
+  // 小尺寸按鈕
+  &--small {
+    padding: $spacing-xs $spacing-sm;
+    font-size: $font-size-xs;
+  }
+
+  // 大尺寸按鈕
+  &--large {
+    padding: $spacing-md $spacing-lg;
+    font-size: $font-size-lg;
+  }
+}
+
+// ============================================================================
+// 卡片基礎樣式
+// ============================================================================
+
+.card {
+  background-color: $background-primary;
+  border: $border-width solid $border-color;
+  border-radius: $border-radius-lg;
+  padding: $spacing-lg;
+  @include card-shadow;
+}
+
+// ============================================================================
+// 工具類別
+// ============================================================================
+
+.visually-hidden {
+  @include visually-hidden;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-left {
+  text-align: left;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.flex {
+  display: flex;
+}
+
+.flex-center {
+  @include flex-center;
+}
+
+.flex-between {
+  @include flex-between;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.gap-sm {
+  gap: $spacing-sm;
+}
+
+.gap-md {
+  gap: $spacing-md;
+}
+
+.gap-lg {
+  gap: $spacing-lg;
+}
+
+.m-0 { margin: 0; }
+.mt-0 { margin-top: 0; }
+.mr-0 { margin-right: 0; }
+.mb-0 { margin-bottom: 0; }
+.ml-0 { margin-left: 0; }
+
+.m-sm { margin: $spacing-sm; }
+.mt-sm { margin-top: $spacing-sm; }
+.mr-sm { margin-right: $spacing-sm; }
+.mb-sm { margin-bottom: $spacing-sm; }
+.ml-sm { margin-left: $spacing-sm; }
+
+.m-md { margin: $spacing-md; }
+.mt-md { margin-top: $spacing-md; }
+.mr-md { margin-right: $spacing-md; }
+.mb-md { margin-bottom: $spacing-md; }
+.ml-md { margin-left: $spacing-md; }
+
+.m-lg { margin: $spacing-lg; }
+.mt-lg { margin-top: $spacing-lg; }
+.mr-lg { margin-right: $spacing-lg; }
+.mb-lg { margin-bottom: $spacing-lg; }
+.ml-lg { margin-left: $spacing-lg; }
+
+.p-0 { padding: 0; }
+.pt-0 { padding-top: 0; }
+.pr-0 { padding-right: 0; }
+.pb-0 { padding-bottom: 0; }
+.pl-0 { padding-left: 0; }
+
+.p-sm { padding: $spacing-sm; }
+.pt-sm { padding-top: $spacing-sm; }
+.pr-sm { padding-right: $spacing-sm; }
+.pb-sm { padding-bottom: $spacing-sm; }
+.pl-sm { padding-left: $spacing-sm; }
+
+.p-md { padding: $spacing-md; }
+.pt-md { padding-top: $spacing-md; }
+.pr-md { padding-right: $spacing-md; }
+.pb-md { padding-bottom: $spacing-md; }
+.pl-md { padding-left: $spacing-md; }
+
+.p-lg { padding: $spacing-lg; }
+.pt-lg { padding-top: $spacing-lg; }
+.pr-lg { padding-right: $spacing-lg; }
+.pb-lg { padding-bottom: $spacing-lg; }
+.pl-lg { padding-left: $spacing-lg; }
+
+// ============================================================================
+// 響應式工具類別
+// ============================================================================
+
+.hide-mobile {
+  @include mobile {
+    display: none !important;
+  }
+}
+
+.hide-tablet {
+  @include tablet {
+    display: none !important;
+  }
+}
+
+.hide-desktop {
+  @include desktop {
+    display: none !important;
+  }
+}
+
+.show-mobile {
+  display: none !important;
+  @include mobile {
+    display: block !important;
+  }
+}
+
+.show-tablet {
+  display: none !important;
+  @include tablet {
+    display: block !important;
+  }
+}
+
+.show-desktop {
+  display: none !important;
+  @include desktop {
+    display: block !important;
+  }
+}
+
+// ============================================================================
+// 應用程式特定樣式
+// ============================================================================
+
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: $background-secondary;
+}
+
+.app-header {
+  background-color: $primary-color;
+  color: white;
+  padding: $spacing-md $spacing-lg;
+  @include flex-between;
+
+  h1 {
+    color: white;
+    margin: 0;
+    font-size: $font-size-xl;
+
+    @include mobile {
+      font-size: $font-size-lg;
+    }
+  }
+}
+
+.app-main {
+  flex: 1;
+  padding: $spacing-lg;
+  padding-bottom: calc(#{$pagination-height} + #{$spacing-lg});
+  max-width: 1400px; // 增加最大寬度以更好利用螢幕空間
+  margin: 0 auto;
+  width: 100%;
+
+  @include mobile {
+    padding: $spacing-md;
+    padding-bottom: calc(#{$pagination-height} + #{$spacing-md});
+  }
+
+  // 在超寬螢幕上提供更大的空間利用
+  @media (min-width: 1600px) {
+    max-width: 90%;
+    padding: $spacing-xl;
+  }
+}
+
+// ============================================================================
+// 載入動畫
+// ============================================================================
+
+.loading {
+  @include flex-center;
+  padding: $spacing-xl;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid $border-color;
+  border-radius: 50%;
+  border-top-color: $primary-color;
+  animation: spin 1s ease-in-out infinite;
+  margin-right: $spacing-sm;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+// ============================================================================
+// 錯誤訊息樣式
+// ============================================================================
+
+.error-message {
+  background-color: lighten($error-color, 40%);
+  color: $error-color;
+  padding: $spacing-md;
+  border-radius: $border-radius-md;
+  border: $border-width solid lighten($error-color, 30%);
+  margin-bottom: $spacing-md;
+  text-align: center;
+}

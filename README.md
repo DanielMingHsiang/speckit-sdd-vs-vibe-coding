@@ -74,21 +74,100 @@
 ## ⚔️ SDD 與 Vibe Coding 對比
 | 特點 | SDD | Vibe Coding |
 | :--- | :--- | :--- |
-| **核心精神** | **意圖即真理**。以**清晰、結構化的規格**為最高依據。 | **流程即自由**。依賴開發者的直覺、自然語言提示和 AI 的即時輸出。 |
-| **程式碼角色** | **規格的執行結果。** 程式碼是可替換的、自動生成的產物。 | **思考的過程。** 程式碼是即時生成，通常較混亂，很難追蹤邏輯。 |
-| **品質標準** | **高且可驗證。** 程式碼必須能追溯回規格中的每個驗收標準 | **不穩定且參差不齊。** 程式碼品質依賴於 Prompt 品質和 AI 的「心情」。 |
-| **流程主導者** | **規格文件 (Spec)。** 規格驅動計劃、任務拆解、程式碼生成和測試。 | **人類提示詞。** 提示詞驅動生成，缺乏結構和嚴謹規劃。 |
-| **人類角色** | **設計師與架構師。** 專注於定義意圖、架構設計和審核 AI 輸出。 | **操作者與修復者。** 專注於快速迭代和修復 AI 生成的錯誤。(極度痛苦) |
-| **優勢** | **品質、可維護性、可擴展性。** 適用於複雜、企業級、長期維護的專案。 | **速度、創意、原型製作。** 適用於快速原型、概念驗證 (PoC) 和個人實驗。 |
-| **痛點** | 前期投入時間長，必須先寫好**結構化規格**。 | **技術債務高昂**，難以在規模化生產環境中維護和除錯。 |      |
+| **核心精神** | **意圖即真理**。<br/>以**清晰、結構化的規格**為最高依據。 | **流程即自由**。<br/>依賴開發者的直覺、自然語言提示和 AI 的即時輸出。 |
+| **程式碼角色** | **規格的執行結果。** <br/>程式碼是可替換的、自動生成的產物。 | **思考的過程。** <br/>程式碼是即時生成，通常較混亂，很難追蹤邏輯。 |
+| **品質標準** | **高且可驗證。** <br/>程式碼必須能追溯回規格中的每個驗收標準 | **不穩定且參差不齊。<br/>** 程式碼品質依賴於 Prompt 品質和 AI 的「心情」。 |
+| **流程主導者** | **規格文件 (Spec)。** <br/>規格驅動計劃、任務拆解、程式碼生成和測試。 | **人類提示詞。** <br/>提示詞驅動生成，缺乏結構和嚴謹規劃。 |
+| **人類角色** | **設計師與架構師。** <br/>專注於定義意圖、架構設計和審核 AI 輸出。 | **操作者與修復者。** <br/>專注於快速迭代和修復 AI 生成的錯誤。(極度痛苦) |
+| **優勢** | **品質、可維護性、可擴展性。** <br/>適用於複雜、企業級、長期維護的專案。 | **速度、創意、原型製作。** <br/>適用於快速原型、概念驗證 (PoC) 和個人實驗。 |
+| **痛點** | 前期投入時間長。<br/>必須先寫好**結構化規格**。 | **技術債務高昂**。<br/>難以在規模化生產環境中維護和除錯。 |      |
 
 ## 和測試驅動開發 (Test-Driven Develpoment, TDD) 的比較
 | TDD                 | SDD                          |
 | ------------------- | ---------------------------- |
 | test 驅動 code       | spec 驅動 code               |
-| test 是實現層         | spec 是行為約束               |
-| test 主張微觀層次約束     | spec 主張宏觀層次約束           |
+| test 是實現層        | spec 是行為約束               |
+| test 主張微觀層次約束  | spec 主張宏觀層次約束          |
 
 ## 一句話總結
 > Spec-Driven Development = 用可執行規格當源頭 ⭢ code 只是實現 spec 的產物。
+
+## Github Spec Kit 實作
+- [官方 Spec kit](https://github.com/github/spec-kit)  
+- [中文 Speckit](https://github.com/doggy8088/spec-kit)
+- 實作使用 Claude Code
+## 步驟
+1. 建立專案原則
+    ```bash
+    /speckit.constitution 建立以下準則 
+        1. 一律使用繁體中文
+        2. 重視程式碼品質，使用者體驗一致性。
+        3. 設計最小可行產品MVP，不要過度設計。
+        # 4. 遵守 @生成式人工智慧安全準則 # 額外提供的安全準則
+    ```
+    - 產生 spec-kit-aws-question-web/.specify/memory/constitution.md
+2. 建立規格  
+這個步驟 spec kit 會自動幫你使用 git 建立新分支，未來功能經過驗證，可以 merge 回主分支。
+    ```
+    /speckit.specify 建立一個試題網頁方便 AWS 證照考生複習考題
+        1. 具有中英文切換功能，每道題目一個區塊，區塊內分為題目、選項、詳解三個子區塊。
+        2. 答案、選項、詳解子區塊可摺疊隱藏，方便考生專注閱讀題目。
+        3. 具有分頁功能，每頁顯示五題。
+        4. 具有可切換分頁的導航列，固定於頁面底部，並且不隨頁面滾動而改變位置。
+        5. 試題使用 @question.json。
+    ```
+    - 產生 specs/001-aws-exam-web/checklists/requirements.md。
+    - 產生 specs/001-aws-exam-web/spec.md。
+    > 因為使用中文，在產生規格文件的時候有編碼問題，我直接請 claude 修正。
+3. 釐清未明確定義
+    ```
+    /speckit.clarify
+    ```
+    - claude 會與你互動，要求澄清規格模糊地帶。
+4. 建立技術實作計畫
+   ```
+   /speckit.plan
+       1. 使用 Vue3.js, Scss, Typescript 撰寫網頁應用程式。
+       2. 前端建構工具使用 vite。
+       3. 不需要建立後端程式，並且題庫來源使用 @questions.js。
+       4. 盡量減少額外使用的 library。
+   ```
+   - 產生 specs/001-aws-exam-web/plan.md。
+   - 產生 specs/001-aws-exam-web/research.md。
+   - 產生 specs/001-aws-exam-web/quickstart.md。
+   - 產生 specs/001-aws-exam-web/data-model.md。
+   - 產生 specs/001-aws-exam-web/contracts/api.ts。
+   - 產生 specs/001-aws-exam-web/contracts/types.ts。
+5. 拆解為任務
+   ```
+   /speckit.tasks
+   ```
+6. 分析一致性與覆蓋度
+   ```
+   /speckit.analyze
+   ```
+7. 執行實作
+   ```
+   /speckit.implement
+   ```
+## 最終規格資料夾結構
+```
+./specs/
+├── spec-kit-aws-question-web
+│   └── .specify/memory
+│       └── constitution.md
+└── 001-aws-exam-web
+    ├── checklists
+    │   └── requirements.md
+    ├── contracts
+    │   ├── api.ts
+    │   └── types.ts
+    ├── data-model.md
+    ├── plan.md
+    ├── quickstart.md
+    ├── research.md
+    ├── spec.md
+    └── tasks.md
+```
+
 ---

@@ -1,0 +1,115 @@
+/**
+ * 桌面版佈局強制覆蓋樣式
+ * 確保在所有情況下都顯示桌面版佈局
+ */
+
+// 強制顯示桌面版分頁導航
+.pagination-nav {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 16px !important;
+}
+
+// 強制顯示快速跳轉功能
+.quick-jump {
+  display: flex !important;
+  gap: 8px !important;
+  margin-bottom: 16px !important;
+}
+
+// 強制隱藏行動版分頁控制項
+.mobile-pagination {
+  display: none !important;
+}
+
+// 強制顯示分頁按鈕文字
+.pagination-button {
+  .button-text {
+    display: inline !important;
+  }
+
+  &.first-page,
+  &.last-page,
+  &.previous-page,
+  &.next-page {
+    .button-text {
+      display: inline !important;
+    }
+  }
+}
+
+// 確保分頁資訊正確顯示
+.pagination-info {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 16px !important;
+
+  // 在較小螢幕上也保持水平排列
+  flex-direction: row !important;
+  gap: 16px !important;
+}
+
+// 確保主要內容區域有適當的寬度
+.app-main {
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  padding: 24px !important;
+  padding-bottom: calc(60px + 24px) !important;
+
+  // 在大螢幕上提供更多空間
+  @media (min-width: 1600px) {
+    max-width: 90% !important;
+    padding: 32px !important;
+  }
+}
+
+// 確保題目卡片有適當的寬度和間距
+.question-card {
+  width: 100% !important;
+  max-width: none !important;
+  margin-bottom: 16px !important;
+}
+
+// 確保頁面標題和語言切換按鈕正確顯示
+.app-header {
+  padding: 16px 24px !important;
+
+  h1 {
+    font-size: 20px !important;
+  }
+}
+
+// 覆蓋所有可能的 mobile breakpoint
+@media screen {
+  .pagination-nav {
+    display: flex !important;
+  }
+
+  .quick-jump {
+    display: flex !important;
+  }
+
+  .mobile-pagination {
+    display: none !important;
+  }
+
+  .pagination-button .button-text {
+    display: inline !important;
+  }
+}
+
+// 確保在所有寬度下都顯示桌面版
+@media (min-width: 1px) {
+  .pagination-nav {
+    display: flex !important;
+  }
+
+  .quick-jump {
+    display: flex !important;
+  }
+
+  .mobile-pagination {
+    display: none !important;
+  }
+}

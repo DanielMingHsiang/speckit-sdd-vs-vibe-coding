@@ -1,0 +1,438 @@
+/**
+ * QuestionCard 組件樣式
+ * AWS 證照考題複習網頁 - 題目卡片樣式
+ */
+
+@import '../variables.scss';
+
+.question-card {
+  background: $background-primary;
+  border: $border-width solid $border-color;
+  border-radius: $question-card-border-radius;
+  margin: $question-card-margin 0;
+  padding: $question-card-padding;
+  @include card-shadow;
+  transition: all $transition-normal;
+
+  // 響應式調整
+  @include mobile {
+    margin: $spacing-sm 0;
+    padding: $spacing-md;
+    border-radius: $border-radius-md;
+  }
+
+  // 答案類型相關樣式
+  &.single-choice {
+    border-left: 4px solid $info-color;
+  }
+
+  &.multiple-choice {
+    border-left: 4px solid $warning-color;
+  }
+
+  // 狀態相關樣式
+  &.answer-visible {
+    background: lighten($success-color, 45%);
+  }
+
+  &.explanation-visible {
+    background: lighten($info-color, 45%);
+  }
+
+  &.answer-visible.explanation-visible {
+    background: linear-gradient(
+      135deg,
+      lighten($success-color, 45%) 0%,
+      lighten($info-color, 45%) 100%
+    );
+  }
+}
+
+// 題目標題區
+.question-header {
+  @include flex-between;
+  margin-bottom: $spacing-lg;
+  padding-bottom: $spacing-md;
+  border-bottom: $border-width solid $border-color;
+
+  @include mobile {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+  }
+}
+
+.question-number {
+  @include flex-center;
+  gap: $spacing-sm;
+
+  .question-label {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    font-weight: $font-weight-medium;
+  }
+
+  .number {
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    color: $primary-color;
+    background: $background-secondary;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-sm;
+    min-width: 32px;
+    text-align: center;
+  }
+}
+
+.question-type-badge {
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+
+  &.single-choice-badge {
+    background: lighten($info-color, 40%);
+    color: darken($info-color, 20%);
+  }
+
+  &.multiple-choice-badge {
+    background: lighten($warning-color, 30%);
+    color: darken($warning-color, 30%);
+  }
+}
+
+// 題目內容
+.question-content {
+  margin-bottom: $spacing-lg;
+}
+
+.question-text {
+  font-size: $font-size-md;
+  line-height: $line-height-relaxed;
+  color: $text-primary;
+  word-wrap: break-word;
+
+  @include mobile {
+    font-size: $font-size-sm;
+  }
+
+  // 處理長段落
+  p {
+    margin-bottom: $spacing-md;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// 選項區域
+.question-options {
+  margin-bottom: $spacing-lg;
+}
+
+.option-item {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-sm;
+  padding: $spacing-sm;
+  margin-bottom: $spacing-sm;
+  border-radius: $border-radius-sm;
+  transition: all $transition-fast;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:hover {
+    background: $background-secondary;
+  }
+
+  &.option-highlight {
+    background: lighten($success-color, 50%);
+  }
+
+  &.option-correct {
+    background: lighten($success-color, 40%);
+    border: $border-width solid $success-color;
+    box-shadow: 0 0 0 2px lighten($success-color, 30%);
+  }
+}
+
+.option-label {
+  flex-shrink: 0;
+  font-weight: $font-weight-bold;
+  color: $primary-color;
+  background: $background-secondary;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  @include flex-center;
+  font-size: $font-size-sm;
+
+  .option-correct & {
+    background: $success-color;
+    color: white;
+  }
+}
+
+.option-text {
+  flex: 1;
+  font-size: $font-size-sm;
+  line-height: $line-height-normal;
+  color: $text-primary;
+
+  @include mobile {
+    font-size: $font-size-xs;
+  }
+}
+
+// 控制按鈕區
+.question-controls {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-lg;
+
+  @include mobile {
+    flex-direction: column;
+  }
+}
+
+.control-button {
+  @include button-reset;
+  @include flex-center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  border: $border-width solid $border-color;
+  border-radius: $border-radius-md;
+  background: $background-primary;
+  color: $text-primary;
+  font-size: $font-size-sm;
+  font-weight: $font-weight-medium;
+  transition: all $transition-fast;
+  min-height: 40px;
+
+  &:hover {
+    background: $background-secondary;
+    border-color: $primary-color;
+  }
+
+  &:focus {
+    outline: 2px solid $accent-color;
+    outline-offset: 2px;
+  }
+
+  &.active {
+    background: $primary-color;
+    color: white;
+    border-color: $primary-color;
+  }
+
+  .button-icon {
+    font-size: $font-size-md;
+  }
+
+  .button-text {
+    @include mobile {
+      font-size: $font-size-xs;
+    }
+  }
+}
+
+.answer-button {
+  &.active {
+    background: $success-color;
+    border-color: $success-color;
+  }
+}
+
+.explanation-button {
+  &.active {
+    background: $info-color;
+    border-color: $info-color;
+  }
+}
+
+// 答案區域
+.answer-section {
+  margin-bottom: $spacing-lg;
+  background: lighten($success-color, 50%);
+  border: $border-width solid lighten($success-color, 30%);
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+}
+
+.section-header {
+  @include flex-center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+  font-weight: $font-weight-semibold;
+  color: darken($success-color, 20%);
+
+  .section-icon {
+    font-size: $font-size-lg;
+  }
+
+  .section-title {
+    font-size: $font-size-md;
+
+    @include mobile {
+      font-size: $font-size-sm;
+    }
+  }
+}
+
+.answer-content {
+  .correct-answers {
+    display: flex;
+    gap: $spacing-xs;
+    margin-bottom: $spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  .answer-badge {
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-sm;
+    font-weight: $font-weight-bold;
+    font-size: $font-size-sm;
+
+    &.single-answer {
+      background: $success-color;
+      color: white;
+    }
+
+    &.multiple-answer {
+      background: $warning-color;
+      color: white;
+    }
+  }
+
+  .answer-note {
+    font-size: $font-size-xs;
+    color: $text-secondary;
+    font-style: italic;
+  }
+}
+
+// 詳解區域
+.explanation-section {
+  background: lighten($info-color, 50%);
+  border: $border-width solid lighten($info-color, 30%);
+  border-radius: $border-radius-md;
+  padding: $spacing-md;
+
+  .section-header {
+    color: darken($info-color, 20%);
+  }
+}
+
+.explanation-content {
+  .explanation-text {
+    font-size: $font-size-sm;
+    line-height: $line-height-relaxed;
+    color: $text-primary;
+    margin-bottom: $spacing-md;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.tips-section {
+  margin-top: $spacing-md;
+  padding-top: $spacing-md;
+  border-top: $border-width solid lighten($info-color, 30%);
+
+  .tips-header {
+    font-size: $font-size-sm;
+    font-weight: $font-weight-semibold;
+    color: darken($info-color, 20%);
+    margin-bottom: $spacing-sm;
+  }
+
+  .tips-list {
+    margin: 0;
+    padding-left: $spacing-md;
+    list-style-type: none;
+
+    .tip-item {
+      position: relative;
+      font-size: $font-size-xs;
+      line-height: $line-height-normal;
+      color: $text-secondary;
+      margin-bottom: $spacing-xs;
+      padding-left: $spacing-md;
+
+      &:before {
+        content: '💡';
+        position: absolute;
+        left: 0;
+        top: 0;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// 動畫效果
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all $transition-normal ease-in-out;
+  overflow: hidden;
+}
+
+.slide-down-enter-from {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.slide-down-leave-to {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.slide-down-enter-to,
+.slide-down-leave-from {
+  opacity: 1;
+  max-height: 1000px; // 足夠大的值
+}
+
+// 高對比模式支援
+@media (prefers-contrast: high) {
+  .question-card {
+    border-width: $border-width-thick;
+  }
+
+  .option-correct {
+    border-width: $border-width-thick;
+  }
+
+  .control-button {
+    border-width: $border-width-thick;
+  }
+}
+
+// 減少動畫偏好
+@media (prefers-reduced-motion) {
+  .question-card,
+  .option-item,
+  .control-button,
+  .slide-down-enter-active,
+  .slide-down-leave-active {
+    transition: none;
+  }
+}

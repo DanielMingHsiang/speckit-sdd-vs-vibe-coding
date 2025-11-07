@@ -1,0 +1,44 @@
+# ESLint ignore file for AWS exam web app
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+
+# Test coverage
+coverage/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Cache directories
+.eslintcache
+.vite/
+
+# Environment files
+.env*
+
+# Generated files
+*.tsbuildinfo
+
+# Cypress
+cypress/videos/
+cypress/screenshots/
+
+# Vitest
+__screenshots__/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

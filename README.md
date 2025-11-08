@@ -38,7 +38,7 @@
   - [Spec Kit (SDD)](#spec-kit)
   - [兩種方法的使用時機](#使用時機)
   - [AI 輔助開發的可能情境](#ai-輔助開發的可能情境)
-
+- [參考資料](#參考資料)
 ---
 
 ## Vibe Coding 氛圍式編碼
@@ -356,6 +356,12 @@ Claude 會互動式澄清規格模糊地帶
 
 > **建議**：將 Vibe Coding 和 SDD 視為 **互補的開發工具**。在適當的時機選擇適當的方法，才能發揮 AI 輔助開發的最大價值。
 
+## 參考資料
+- [Vibe-Driven Development: How to Code Like an Artist and Still Ship Like a Pro](https://medium.com/@hiren6997/vibe-driven-development-how-to-code-like-an-artist-and-still-ship-like-a-pro-a2fadad37856)
+- [From Vibe Coding to Spec-Driven Development](https://medium.com/@alonfliess/from-vibe-coding-to-spec-driven-development-bridging-ai-creativity-and-software-discipline-fe17f82cc77c)
+- [Spec-driven development with AI: Get started with a new open source toolkit](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/)
+- [Using Spec-Driven Development to build consistent APIs](https://medium.com/goiabada/using-spec-driven-development-to-build-consistent-apis-e391daafae71)
+- Gemini
 ---
 
 

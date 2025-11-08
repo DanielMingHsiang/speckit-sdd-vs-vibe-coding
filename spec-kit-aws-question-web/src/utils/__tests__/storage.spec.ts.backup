@@ -1,0 +1,493 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { storage, storageUtils } from '../storage'
+import type { AppState } from '@/types/types'
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn()
+}
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock
+})
+
+// Mock APP_CONSTANTS
+vi.mock('@/types/types', async () => {
+  const actual = await vi.importActual('@/types/types')
+  return {
+    ...actual,
+    APP_CONSTANTS: {
+      STORAGE_KEY: 'aws-exam-app-state',
+      QUESTIONS_PER_PAGE: 5,
+      DEFAULT_LANGUAGE: 'zh',
+      SUPPORTED_LANGUAGES: ['zh', 'en']
+    }
+  }
+})
+
+describe('storage', () => {
+  const mockValidState: AppState = {
+    currentPage: 2,
+    questionsPerPage: 5,
+    selectedLanguage: 'en',
+    collapsedStates: {
+      1: { answerCollapsed: false, explanationCollapsed: true },
+      2: { answerCollapsed: true, explanationCollapsed: false }
+    }
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorageMock.getItem.mockReturnValue(null)
+  })
+
+  describe('getDefaultState', () => {
+    it('應該返回預設的應用程式狀態', () => {
+      const defaultState = storage.getDefaultState()
+
+      expect(defaultState).toEqual({
+        currentPage: 1,
+        questionsPerPage: 5,
+        selectedLanguage: 'zh',
+        collapsedStates: {}
+      })
+    })
+  })
+
+  describe('validateAndSanitizeState', () => {
+    it('應該驗證並清理有效的狀態', () => {
+      const validState = {
+        currentPage: 3,
+        questionsPerPage: 10,
+        selectedLanguage: 'en',
+        collapsedStates: {
+          1: { answerCollapsed: true, explanationCollapsed: false },
+          2: { answerCollapsed: false, explanationCollapsed: true }
+        }
+      }
+
+      const result = storage.validateAndSanitizeState(validState)
+
+      expect(result).toEqual(validState)
+    })
+
+    it('應該過濾無效的 currentPage', () => {
+      const invalidStates = [
+        { currentPage: -1 },
+        { currentPage: 0 },
+        { currentPage: 'invalid' },
+        { currentPage: null },
+        { currentPage: 3.7 } // 應該被取整
+      ]
+
+      const result1 = storage.validateAndSanitizeState(invalidStates[0])
+      expect(result1.currentPage).toBeUndefined()
+
+      const result2 = storage.validateAndSanitizeState(invalidStates[1])
+      expect(result2.currentPage).toBeUndefined()
+
+      const result3 = storage.validateAndSanitizeState(invalidStates[2])
+      expect(result3.currentPage).toBeUndefined()
+
+      const result4 = storage.validateAndSanitizeState(invalidStates[3])
+      expect(result4.currentPage).toBeUndefined()
+
+      const result5 = storage.validateAndSanitizeState(invalidStates[4])
+      expect(result5.currentPage).toBe(3) // 取整
+    })
+
+    it('應該過濾無效的 questionsPerPage', () => {
+      const invalidStates = [
+        { questionsPerPage: -5 },
+        { questionsPerPage: 0 },
+        { questionsPerPage: 'invalid' },
+        { questionsPerPage: 5.8 } // 應該被取整
+      ]
+
+      const result1 = storage.validateAndSanitizeState(invalidStates[0])
+      expect(result1.questionsPerPage).toBeUndefined()
+
+      const result2 = storage.validateAndSanitizeState(invalidStates[1])
+      expect(result2.questionsPerPage).toBeUndefined()
+
+      const result3 = storage.validateAndSanitizeState(invalidStates[2])
+      expect(result3.questionsPerPage).toBeUndefined()
+
+      const result4 = storage.validateAndSanitizeState(invalidStates[3])
+      expect(result4.questionsPerPage).toBe(5) // 取整
+    })
+
+    it('應該過濾無效的 selectedLanguage', () => {
+      const invalidStates = [
+        { selectedLanguage: 'fr' }, // 不支援的語言
+        { selectedLanguage: 123 },
+        { selectedLanguage: null },
+        { selectedLanguage: undefined }
+      ]
+
+      invalidStates.forEach(state => {
+        const result = storage.validateAndSanitizeState(state)
+        expect(result.selectedLanguage).toBeUndefined()
+      })
+
+      // 有效的語言
+      const validState = { selectedLanguage: 'en' }
+      const result = storage.validateAndSanitizeState(validState)
+      expect(result.selectedLanguage).toBe('en')
+    })
+
+    it('應該驗證並清理 collapsedStates', () => {
+      const validCollapsedStates = {
+        collapsedStates: {
+          1: { answerCollapsed: true, explanationCollapsed: false },
+          2: { answerCollapsed: false, explanationCollapsed: true }
+        }
+      }
+
+      const result = storage.validateAndSanitizeState(validCollapsedStates)
+      expect(result.collapsedStates).toEqual(validCollapsedStates.collapsedStates)
+    })
+
+    it('應該過濾無效的 collapsedStates', () => {
+      const invalidCollapsedStates = {
+        collapsedStates: {
+          'invalid': { answerCollapsed: true, explanationCollapsed: false }, // 無效鍵
+          1: { answerCollapsed: 'invalid', explanationCollapsed: false }, // 無效值類型
+          2: { answerCollapsed: true }, // 缺少欄位
+          3: null, // 無效值
+          4: { answerCollapsed: true, explanationCollapsed: false } // 有效
+        }
+      }
+
+      const result = storage.validateAndSanitizeState(invalidCollapsedStates)
+      expect(result.collapsedStates).toEqual({
+        4: { answerCollapsed: true, explanationCollapsed: false }
+      })
+    })
+
+    it('應該處理完全無效的 collapsedStates', () => {
+      const invalidStates = [
+        { collapsedStates: 'not an object' },
+        { collapsedStates: null },
+        { collapsedStates: 123 }
+      ]
+
+      invalidStates.forEach(state => {
+        const result = storage.validateAndSanitizeState(state)
+        expect(result.collapsedStates).toBeUndefined()
+      })
+    })
+  })
+
+  describe('loadState', () => {
+    it('當沒有儲存資料時應該返回預設狀態', () => {
+      localStorageMock.getItem.mockReturnValue(null)
+
+      const result = storage.loadState()
+
+      expect(result).toEqual(storage.getDefaultState())
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('aws-exam-app-state')
+    })
+
+    it('應該載入並驗證有效的儲存資料', () => {
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockValidState))
+
+      const result = storage.loadState()
+
+      expect(result).toEqual(mockValidState)
+    })
+
+    it('應該處理無效的 JSON 資料', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      localStorageMock.getItem.mockReturnValue('invalid json')
+
+      const result = storage.loadState()
+
+      expect(result).toEqual(storage.getDefaultState())
+      expect(consoleSpy).toHaveBeenCalledWith('無法載入儲存的狀態，使用預設值:', expect.any(Error))
+      consoleSpy.mockRestore()
+    })
+
+    it('應該處理 localStorage 存取錯誤', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new Error('Storage access denied')
+      })
+
+      const result = storage.loadState()
+
+      expect(result).toEqual(storage.getDefaultState())
+      expect(consoleSpy).toHaveBeenCalledWith('無法載入儲存的狀態，使用預設值:', expect.any(Error))
+      consoleSpy.mockRestore()
+    })
+
+    it('應該合併預設狀態和部分有效資料', () => {
+      const partialValidState = {
+        currentPage: 3,
+        selectedLanguage: 'en'
+        // 缺少 questionsPerPage 和 collapsedStates
+      }
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(partialValidState))
+
+      const result = storage.loadState()
+
+      expect(result).toEqual({
+        currentPage: 3,
+        questionsPerPage: 5, // 來自預設值
+        selectedLanguage: 'en',
+        collapsedStates: {} // 來自預設值
+      })
+    })
+  })
+
+  describe('saveState', () => {
+    it('應該正確儲存狀態到 localStorage', () => {
+      storage.saveState(mockValidState)
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        'aws-exam-app-state',
+        JSON.stringify(mockValidState)
+      )
+    })
+
+    it('應該處理 localStorage 儲存錯誤', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new Error('Storage quota exceeded')
+      })
+
+      storage.saveState(mockValidState)
+
+      expect(consoleSpy).toHaveBeenCalledWith('無法儲存狀態:', expect.any(Error))
+      consoleSpy.mockRestore()
+    })
+
+    it('應該只儲存需要的欄位', () => {
+      const stateWithExtraFields = {
+        ...mockValidState,
+        extraField: 'should not be saved' // 額外欄位不應該被儲存
+      } as any
+
+      storage.saveState(stateWithExtraFields)
+
+      const savedData = JSON.parse(localStorageMock.setItem.mock.calls[0][1])
+      expect(savedData).not.toHaveProperty('extraField')
+      expect(savedData).toEqual(mockValidState)
+    })
+  })
+
+  describe('clearStorage', () => {
+    it('應該清除儲存的應用程式資料', () => {
+      storage.clearStorage()
+
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('aws-exam-app-state')
+    })
+
+    it('應該處理清除錯誤', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      localStorageMock.removeItem.mockImplementation(() => {
+        throw new Error('Storage access denied')
+      })
+
+      storage.clearStorage()
+
+      expect(consoleSpy).toHaveBeenCalledWith('無法清除儲存資料:', expect.any(Error))
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('isStorageAvailable', () => {
+    it('當 localStorage 可用時應該返回 true', () => {
+      expect(storage.isStorageAvailable()).toBe(true)
+      expect(localStorageMock.setItem).toHaveBeenCalledWith('__storage_test__', '__storage_test__')
+      expect(localStorageMock.removeItem).toHaveBeenCalledWith('__storage_test__')
+    })
+
+    it('當 localStorage 不可用時應該返回 false', () => {
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new Error('Storage not available')
+      })
+
+      expect(storage.isStorageAvailable()).toBe(false)
+    })
+  })
+
+  describe('getStorageSize', () => {
+    it('應該返回儲存資料的大小', () => {
+      const testData = JSON.stringify(mockValidState)
+      localStorageMock.getItem.mockReturnValue(testData)
+
+      const result = storage.getStorageSize()
+
+      expect(result).toBe(testData.length)
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('aws-exam-app-state')
+    })
+
+    it('當沒有儲存資料時應該返回 0', () => {
+      localStorageMock.getItem.mockReturnValue(null)
+
+      const result = storage.getStorageSize()
+
+      expect(result).toBe(0)
+    })
+
+    it('當發生錯誤時應該返回 0', () => {
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new Error('Storage access denied')
+      })
+
+      const result = storage.getStorageSize()
+
+      expect(result).toBe(0)
+    })
+  })
+
+  describe('cleanupCollapsedStates', () => {
+    it('當摺疊狀態數量不超過限制時不應該清理', () => {
+      const stateWithFewCollapsedStates = {
+        ...mockValidState,
+        collapsedStates: {
+          1: { answerCollapsed: true, explanationCollapsed: false },
+          2: { answerCollapsed: false, explanationCollapsed: true }
+        }
+      }
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(stateWithFewCollapsedStates))
+
+      storage.cleanupCollapsedStates(10)
+
+      // 不應該呼叫 setItem（不需要清理）
+      expect(localStorageMock.setItem).not.toHaveBeenCalled()
+    })
+
+    it('應該清理超過限制的摺疊狀態', () => {
+      const stateWithManyCollapsedStates = {
+        ...mockValidState,
+        collapsedStates: {
+          1: { answerCollapsed: true, explanationCollapsed: false },
+          2: { answerCollapsed: false, explanationCollapsed: true },
+          3: { answerCollapsed: true, explanationCollapsed: true },
+          4: { answerCollapsed: false, explanationCollapsed: false },
+          5: { answerCollapsed: true, explanationCollapsed: false }
+        }
+      }
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(stateWithManyCollapsedStates))
+
+      storage.cleanupCollapsedStates(3) // 只保留 3 個
+
+      expect(localStorageMock.setItem).toHaveBeenCalled()
+
+      const savedData = JSON.parse(localStorageMock.setItem.mock.calls[0][1])
+      const collapsedStatesCount = Object.keys(savedData.collapsedStates).length
+      expect(collapsedStatesCount).toBe(3)
+
+      // 應該保留編號較大的題目（假設是較新的）
+      expect(savedData.collapsedStates).toHaveProperty('5')
+      expect(savedData.collapsedStates).toHaveProperty('4')
+      expect(savedData.collapsedStates).toHaveProperty('3')
+      expect(savedData.collapsedStates).not.toHaveProperty('1')
+      expect(savedData.collapsedStates).not.toHaveProperty('2')
+    })
+
+    it('應該處理清理過程中的錯誤', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new Error('Storage access denied')
+      })
+
+      storage.cleanupCollapsedStates(5)
+
+      expect(consoleSpy).toHaveBeenCalledWith('清理摺疊狀態時發生錯誤:', expect.any(Error))
+      consoleSpy.mockRestore()
+    })
+
+    it('應該使用預設的清理限制', () => {
+      const stateWithManyCollapsedStates = {
+        ...mockValidState,
+        collapsedStates: Object.fromEntries(
+          Array.from({ length: 150 }, (_, i) => [
+            i + 1,
+            { answerCollapsed: true, explanationCollapsed: false }
+          ])
+        )
+      }
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(stateWithManyCollapsedStates))
+
+      storage.cleanupCollapsedStates() // 使用預設值 100
+
+      expect(localStorageMock.setItem).toHaveBeenCalled()
+
+      const savedData = JSON.parse(localStorageMock.setItem.mock.calls[0][1])
+      const collapsedStatesCount = Object.keys(savedData.collapsedStates).length
+      expect(collapsedStatesCount).toBe(100)
+    })
+  })
+
+  describe('storageUtils 匯出', () => {
+    it('應該匯出基本的儲存工具函數', () => {
+      expect(storageUtils).toHaveProperty('loadState')
+      expect(storageUtils).toHaveProperty('saveState')
+      expect(storageUtils).toHaveProperty('clearStorage')
+    })
+
+    it('基本工具函數應該正常工作', () => {
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockValidState))
+
+      const result = storageUtils.loadState()
+      expect(result).toEqual(mockValidState)
+
+      storageUtils.saveState(mockValidState)
+      expect(localStorageMock.setItem).toHaveBeenCalled()
+
+      storageUtils.clearStorage()
+      expect(localStorageMock.removeItem).toHaveBeenCalled()
+    })
+  })
+
+  describe('整合測試', () => {
+    it('應該能夠完整地儲存和載入狀態', () => {
+      // 儲存狀態
+      storage.saveState(mockValidState)
+
+      // 模擬從儲存載入
+      const savedData = localStorageMock.setItem.mock.calls[0][1]
+      localStorageMock.getItem.mockReturnValue(savedData)
+
+      // 載入狀態
+      const loadedState = storage.loadState()
+
+      expect(loadedState).toEqual(mockValidState)
+    })
+
+    it('應該能夠處理部分損壞的資料', () => {
+      const partiallyCorruptedState = {
+        currentPage: 'invalid', // 無效
+        questionsPerPage: 10, // 有效
+        selectedLanguage: 'en', // 有效
+        collapsedStates: {
+          1: { answerCollapsed: true, explanationCollapsed: false }, // 有效
+          2: { answerCollapsed: 'invalid' } // 無效
+        }
+      }
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(partiallyCorruptedState))
+
+      const result = storage.loadState()
+
+      expect(result).toEqual({
+        currentPage: 1, // 使用預設值
+        questionsPerPage: 10, // 保留有效值
+        selectedLanguage: 'en', // 保留有效值
+        collapsedStates: {
+          1: { answerCollapsed: true, explanationCollapsed: false } // 只保留有效的摺疊狀態
+        }
+      })
+    })
+  })
+})

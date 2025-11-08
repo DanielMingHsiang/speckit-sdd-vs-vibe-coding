@@ -1,0 +1,488 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { usePagination } from '../usePagination'
+import type { Question } from '@/types/types'
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn()
+}
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock
+})
+
+// Mock questions data
+const mockQuestions: Question[] = Array.from({ length: 23 }, (_, index) => ({
+  question_number: index + 1,
+  question_text_en: `Question ${index + 1}`,
+  question_text_zh: `題目 ${index + 1}`,
+  options_en: ['Option A', 'Option B', 'Option C', 'Option D'],
+  options_zh: ['選項 A', '選項 B', '選項 C', '選項 D'],
+  correct_answer: 'A',
+  explanation: `Explanation for question ${index + 1}`,
+  tips: []
+}))
+
+// Mock useQuestions
+vi.mock('../useQuestions', () => ({
+  useQuestions: () => ({
+    questions: { value: mockQuestions }
+  }),
+  getQuestionsByPage: (currentPage: number, questionsPerPage: number) => {
+    const startIndex = (currentPage - 1) * questionsPerPage
+    return mockQuestions.slice(startIndex, startIndex + questionsPerPage)
+  }
+}))
+
+// Mock APP_CONSTANTS
+vi.mock('@/types/types', async () => {
+  const actual = await vi.importActual('@/types/types')
+  return {
+    ...actual,
+    APP_CONSTANTS: {
+      QUESTIONS_PER_PAGE: 5,
+      DEFAULT_COLLAPSED_STATE: {
+        answerCollapsed: true,
+        explanationCollapsed: true
+      }
+    }
+  }
+})
+
+describe('usePagination', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorageMock.getItem.mockReturnValue(null)
+  })
+
+  afterEach(() => {
+    // 重置模組狀態
+    vi.clearAllTimers()
+  })
+
+  describe('初始化', () => {
+    it('應該返回所有必要的屬性和方法', () => {
+      const result = usePagination()
+
+      expect(result).toHaveProperty('currentPage')
+      expect(result).toHaveProperty('questionsPerPage')
+      expect(result).toHaveProperty('paginationInfo')
+      expect(result).toHaveProperty('pageRangeInfo')
+      expect(result).toHaveProperty('paginationButtons')
+      expect(result).toHaveProperty('shouldShowPagination')
+      expect(result).toHaveProperty('goToPage')
+      expect(result).toHaveProperty('nextPage')
+      expect(result).toHaveProperty('previousPage')
+      expect(result).toHaveProperty('goToFirstPage')
+      expect(result).toHaveProperty('goToLastPage')
+      expect(result).toHaveProperty('resetPagination')
+    })
+
+    it('應該從 localStorage 載入儲存的頁面', () => {
+      const storedData = {
+        currentPage: 3,
+        timestamp: Date.now()
+      }
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(storedData))
+
+      const { currentPage } = usePagination()
+
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('aws-exam-pagination')
+      expect(currentPage.value).toBe(3)
+    })
+
+    it('當 localStorage 資料無效時應該使用預設頁面', () => {
+      localStorageMock.getItem.mockReturnValue('invalid json')
+
+      const { currentPage } = usePagination()
+      expect(currentPage.value).toBe(1)
+    })
+
+    it('當 localStorage 為空時應該從第一頁開始', () => {
+      localStorageMock.getItem.mockReturnValue(null)
+
+      const { currentPage } = usePagination()
+      expect(currentPage.value).toBe(1)
+    })
+  })
+
+  describe('分頁資訊計算', () => {
+    it('應該正確計算分頁資訊', () => {
+      const { paginationInfo } = usePagination()
+
+      expect(paginationInfo.value.totalQuestions).toBe(23)
+      expect(paginationInfo.value.totalPages).toBe(5) // Math.ceil(23/5) = 5
+      expect(paginationInfo.value.currentPage).toBe(1)
+      expect(paginationInfo.value.hasNextPage).toBe(true)
+      expect(paginationInfo.value.hasPreviousPage).toBe(false)
+      expect(paginationInfo.value.questionsOnCurrentPage).toHaveLength(5)
+    })
+
+    it('應該正確處理最後一頁', () => {
+      const { paginationInfo, goToLastPage } = usePagination()
+
+      goToLastPage()
+
+      expect(paginationInfo.value.currentPage).toBe(5)
+      expect(paginationInfo.value.hasNextPage).toBe(false)
+      expect(paginationInfo.value.hasPreviousPage).toBe(true)
+      expect(paginationInfo.value.questionsOnCurrentPage).toHaveLength(3) // 最後一頁只有3題
+    })
+
+    it('應該自動修正超出範圍的頁面', () => {
+      const { currentPage, paginationInfo, goToPage } = usePagination()
+
+      // 嘗試跳轉到超出範圍的頁面
+      goToPage(10)
+
+      // 應該被限制在有效範圍內
+      expect(paginationInfo.value.currentPage).toBe(1) // goToPage 方法會檢查範圍
+      expect(currentPage.value).toBe(1)
+    })
+  })
+
+  describe('頁面範圍資訊', () => {
+    it('應該正確計算第一頁的範圍資訊', () => {
+      const { pageRangeInfo } = usePagination()
+
+      expect(pageRangeInfo.value.startItem).toBe(1)
+      expect(pageRangeInfo.value.endItem).toBe(5)
+      expect(pageRangeInfo.value.totalItems).toBe(23)
+      expect(pageRangeInfo.value.rangeText).toBe('1-5 / 23')
+    })
+
+    it('應該正確計算最後一頁的範圍資訊', () => {
+      const { pageRangeInfo, goToLastPage } = usePagination()
+
+      goToLastPage()
+
+      expect(pageRangeInfo.value.startItem).toBe(21)
+      expect(pageRangeInfo.value.endItem).toBe(23)
+      expect(pageRangeInfo.value.totalItems).toBe(23)
+      expect(pageRangeInfo.value.rangeText).toBe('21-23 / 23')
+    })
+
+    it('應該正確計算中間頁面的範圍資訊', () => {
+      const { pageRangeInfo, goToPage } = usePagination()
+
+      goToPage(3)
+
+      expect(pageRangeInfo.value.startItem).toBe(11)
+      expect(pageRangeInfo.value.endItem).toBe(15)
+      expect(pageRangeInfo.value.rangeText).toBe('11-15 / 23')
+    })
+  })
+
+  describe('分頁按鈕', () => {
+    it('當總頁數較少時應該顯示所有頁面按鈕', () => {
+      const { paginationButtons } = usePagination()
+
+      expect(paginationButtons.value).toHaveLength(5)
+      expect(paginationButtons.value[0]).toEqual({
+        page: 1,
+        isCurrent: true,
+        isEllipsis: false
+      })
+      expect(paginationButtons.value[4]).toEqual({
+        page: 5,
+        isCurrent: false,
+        isEllipsis: false
+      })
+    })
+
+    it('應該正確標記當前頁面', () => {
+      const { paginationButtons, goToPage } = usePagination()
+
+      goToPage(3)
+
+      const currentButton = paginationButtons.value.find(btn => btn.isCurrent)
+      expect(currentButton?.page).toBe(3)
+    })
+
+    it('當總頁數很多時應該顯示省略號', () => {
+      // 創建更多題目來測試省略號邏輯
+      const manyQuestions = Array.from({ length: 100 }, (_, index) => mockQuestions[0])
+      vi.mocked(vi.importMock('../useQuestions')).mockReturnValue({
+        useQuestions: () => ({
+          questions: { value: manyQuestions }
+        }),
+        getQuestionsByPage: (currentPage: number, questionsPerPage: number) => {
+          const startIndex = (currentPage - 1) * questionsPerPage
+          return manyQuestions.slice(startIndex, startIndex + questionsPerPage)
+        }
+      })
+
+      const { paginationButtons, goToPage } = usePagination()
+
+      goToPage(10) // 跳到中間頁面
+
+      const hasEllipsis = paginationButtons.value.some(btn => btn.isEllipsis)
+      expect(hasEllipsis).toBe(true)
+    })
+  })
+
+  describe('導航方法', () => {
+    it('goToPage 應該正確跳轉頁面', () => {
+      const { currentPage, goToPage } = usePagination()
+
+      goToPage(3)
+      expect(currentPage.value).toBe(3)
+    })
+
+    it('goToPage 應該拒絕無效頁面', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const { currentPage, goToPage } = usePagination()
+
+      const originalPage = currentPage.value
+
+      // 嘗試跳轉到無效頁面
+      goToPage(0)
+      expect(currentPage.value).toBe(originalPage)
+      expect(consoleSpy).toHaveBeenCalledWith('頁面編號必須大於等於 1')
+
+      goToPage(10)
+      expect(currentPage.value).toBe(originalPage)
+      expect(consoleSpy).toHaveBeenCalledWith('頁面編號 10 超出範圍，最大頁數為 5')
+
+      consoleSpy.mockRestore()
+    })
+
+    it('nextPage 應該正確跳轉到下一頁', () => {
+      const { currentPage, nextPage } = usePagination()
+
+      expect(currentPage.value).toBe(1)
+
+      nextPage()
+      expect(currentPage.value).toBe(2)
+
+      nextPage()
+      expect(currentPage.value).toBe(3)
+    })
+
+    it('nextPage 不應該超過最後一頁', () => {
+      const { currentPage, nextPage, goToLastPage } = usePagination()
+
+      goToLastPage()
+      const lastPage = currentPage.value
+
+      nextPage()
+      expect(currentPage.value).toBe(lastPage) // 應該保持在最後一頁
+    })
+
+    it('previousPage 應該正確跳轉到上一頁', () => {
+      const { currentPage, previousPage, goToPage } = usePagination()
+
+      goToPage(3)
+      expect(currentPage.value).toBe(3)
+
+      previousPage()
+      expect(currentPage.value).toBe(2)
+
+      previousPage()
+      expect(currentPage.value).toBe(1)
+    })
+
+    it('previousPage 不應該低於第一頁', () => {
+      const { currentPage, previousPage } = usePagination()
+
+      expect(currentPage.value).toBe(1)
+
+      previousPage()
+      expect(currentPage.value).toBe(1) // 應該保持在第一頁
+    })
+
+    it('goToFirstPage 應該跳轉到第一頁', () => {
+      const { currentPage, goToFirstPage, goToPage } = usePagination()
+
+      goToPage(3)
+      expect(currentPage.value).toBe(3)
+
+      goToFirstPage()
+      expect(currentPage.value).toBe(1)
+    })
+
+    it('goToLastPage 應該跳轉到最後一頁', () => {
+      const { currentPage, goToLastPage } = usePagination()
+
+      expect(currentPage.value).toBe(1)
+
+      goToLastPage()
+      expect(currentPage.value).toBe(5)
+    })
+
+    it('resetPagination 應該重置到第一頁', () => {
+      const { currentPage, resetPagination, goToPage } = usePagination()
+
+      goToPage(4)
+      expect(currentPage.value).toBe(4)
+
+      resetPagination()
+      expect(currentPage.value).toBe(1)
+    })
+  })
+
+  describe('響應式行為', () => {
+    it('當前頁面變更時應該觸發計算屬性更新', () => {
+      const { paginationInfo, goToPage } = usePagination()
+
+      expect(paginationInfo.value.currentPage).toBe(1)
+      expect(paginationInfo.value.hasPreviousPage).toBe(false)
+
+      goToPage(2)
+
+      expect(paginationInfo.value.currentPage).toBe(2)
+      expect(paginationInfo.value.hasPreviousPage).toBe(true)
+    })
+
+    it('頁面範圍資訊應該響應頁面變更', () => {
+      const { pageRangeInfo, goToPage } = usePagination()
+
+      expect(pageRangeInfo.value.rangeText).toBe('1-5 / 23')
+
+      goToPage(2)
+
+      expect(pageRangeInfo.value.rangeText).toBe('6-10 / 23')
+    })
+  })
+
+  describe('顯示條件', () => {
+    it('當只有一頁時不應該顯示分頁控制項', () => {
+      // Mock 只有少量題目
+      const fewQuestions = [mockQuestions[0], mockQuestions[1]]
+      vi.mocked(vi.importMock('../useQuestions')).mockReturnValue({
+        useQuestions: () => ({
+          questions: { value: fewQuestions }
+        }),
+        getQuestionsByPage: () => fewQuestions
+      })
+
+      const { shouldShowPagination } = usePagination()
+
+      expect(shouldShowPagination.value).toBe(false)
+    })
+
+    it('當有多頁時應該顯示分頁控制項', () => {
+      const { shouldShowPagination } = usePagination()
+
+      expect(shouldShowPagination.value).toBe(true)
+    })
+  })
+
+  describe('localStorage 持久化', () => {
+    it('頁面變更應該自動儲存到 localStorage', () => {
+      const { goToPage } = usePagination()
+
+      goToPage(3)
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        'aws-exam-pagination',
+        expect.stringContaining('"currentPage":3')
+      )
+    })
+
+    it('應該處理 localStorage 儲存錯誤', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new Error('Storage quota exceeded')
+      })
+
+      const { goToPage } = usePagination()
+      goToPage(2)
+
+      expect(consoleSpy).toHaveBeenCalledWith('儲存分頁狀態失敗:', expect.any(Error))
+      consoleSpy.mockRestore()
+    })
+
+    it('應該處理 localStorage 載入錯誤', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new Error('Storage access denied')
+      })
+
+      const { currentPage } = usePagination()
+
+      expect(consoleSpy).toHaveBeenCalledWith('載入分頁狀態失敗:', expect.any(Error))
+      expect(currentPage.value).toBe(1)
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('邊界情況', () => {
+    it('應該處理空題目陣列', () => {
+      vi.mocked(vi.importMock('../useQuestions')).mockReturnValue({
+        useQuestions: () => ({
+          questions: { value: [] }
+        }),
+        getQuestionsByPage: () => []
+      })
+
+      const { paginationInfo } = usePagination()
+
+      expect(paginationInfo.value.totalQuestions).toBe(0)
+      expect(paginationInfo.value.totalPages).toBe(1) // 至少一頁
+      expect(paginationInfo.value.currentPage).toBe(1)
+    })
+
+    it('應該處理剛好整除的題目數量', () => {
+      // 創建剛好 10 題（2頁 × 5題/頁）
+      const exactQuestions = mockQuestions.slice(0, 10)
+      vi.mocked(vi.importMock('../useQuestions')).mockReturnValue({
+        useQuestions: () => ({
+          questions: { value: exactQuestions }
+        }),
+        getQuestionsByPage: (currentPage: number, questionsPerPage: number) => {
+          const startIndex = (currentPage - 1) * questionsPerPage
+          return exactQuestions.slice(startIndex, startIndex + questionsPerPage)
+        }
+      })
+
+      const { paginationInfo, goToLastPage } = usePagination()
+
+      expect(paginationInfo.value.totalPages).toBe(2)
+
+      goToLastPage()
+      expect(paginationInfo.value.questionsOnCurrentPage).toHaveLength(5) // 最後一頁也是滿的
+    })
+
+    it('應該處理載入的頁面超出當前總頁數的情況', () => {
+      // 先儲存一個較大的頁面號
+      const storedData = {
+        currentPage: 10,
+        timestamp: Date.now()
+      }
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(storedData))
+
+      const { paginationInfo } = usePagination()
+
+      // 應該被自動修正到有效範圍內
+      expect(paginationInfo.value.currentPage).toBe(5) // 最大頁數
+    })
+  })
+
+  describe('效能考量', () => {
+    it('多次呼叫 usePagination 應該返回相同的狀態', () => {
+      const pagination1 = usePagination()
+      const pagination2 = usePagination()
+
+      pagination1.goToPage(3)
+
+      expect(pagination2.currentPage.value).toBe(3)
+    })
+
+    it('分頁按鈕計算應該是響應式的', () => {
+      const { paginationButtons, goToPage } = usePagination()
+
+      const initialButtons = paginationButtons.value
+      expect(initialButtons[0].isCurrent).toBe(true)
+
+      goToPage(2)
+
+      const updatedButtons = paginationButtons.value
+      expect(updatedButtons[0].isCurrent).toBe(false)
+      expect(updatedButtons[1].isCurrent).toBe(true)
+    })
+  })
+})

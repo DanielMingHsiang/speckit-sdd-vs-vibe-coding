@@ -1,0 +1,433 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { useCollapsedStates } from '../useCollapsedStates'
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: vi.fn(),
+  setItem: vi.fn(),
+  removeItem: vi.fn(),
+  clear: vi.fn()
+}
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock
+})
+
+// Mock setTimeout 和 clearTimeout
+vi.useFakeTimers()
+
+describe('useCollapsedStates - 修復版本', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorageMock.getItem.mockReturnValue(null)
+    vi.clearAllTimers()
+  })
+
+  afterEach(() => {
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
+    vi.useFakeTimers() // 重新設定假計時器
+  })
+
+  describe('初始化', () => {
+    it('應該返回所有必要的方法和屬性', () => {
+      const result = useCollapsedStates()
+
+      expect(result).toHaveProperty('collapsedStates')
+      expect(result).toHaveProperty('getCollapsedState')
+      expect(result).toHaveProperty('setCollapsedState')
+      expect(result).toHaveProperty('toggleAnswer')
+      expect(result).toHaveProperty('toggleExplanation')
+      expect(result).toHaveProperty('showAnswer')
+      expect(result).toHaveProperty('hideAnswer')
+      expect(result).toHaveProperty('showExplanation')
+      expect(result).toHaveProperty('hideExplanation')
+      expect(result).toHaveProperty('showAll')
+      expect(result).toHaveProperty('hideAll')
+      expect(result).toHaveProperty('resetCollapsedState')
+      expect(result).toHaveProperty('resetAll')
+      expect(result).toHaveProperty('setBatchCollapsedState')
+      expect(result).toHaveProperty('getCollapsedStatesStats')
+      expect(result).toHaveProperty('cleanupCollapsedStates')
+    })
+
+    it('應該從 localStorage 載入儲存的狀態', () => {
+      const storedData = {
+        '1': { answerCollapsed: false, explanationCollapsed: true },
+        '2': { answerCollapsed: true, explanationCollapsed: false }
+      }
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(storedData))
+
+      const { getCollapsedState } = useCollapsedStates()
+
+      expect(localStorageMock.getItem).toHaveBeenCalledWith('aws-exam-collapsed-states')
+      expect(getCollapsedState(1)).toEqual({ answerCollapsed: false, explanationCollapsed: true })
+      expect(getCollapsedState(2)).toEqual({ answerCollapsed: true, explanationCollapsed: false })
+    })
+
+    it('當 localStorage 資料無效時應該使用預設狀態', () => {
+      localStorageMock.getItem.mockReturnValue('invalid json')
+
+      const { getCollapsedState } = useCollapsedStates()
+      const state = getCollapsedState(1)
+
+      expect(state).toEqual({ answerCollapsed: true, explanationCollapsed: true })
+    })
+
+    it('當 localStorage 為空時應該使用預設狀態', () => {
+      localStorageMock.getItem.mockReturnValue(null)
+
+      const { getCollapsedState } = useCollapsedStates()
+      const state = getCollapsedState(1)
+
+      expect(state).toEqual({ answerCollapsed: true, explanationCollapsed: true })
+    })
+  })
+
+  describe('getCollapsedState', () => {
+    it('應該為新題目返回預設狀態', () => {
+      const { getCollapsedState } = useCollapsedStates()
+      const state = getCollapsedState(999)
+
+      expect(state).toEqual({
+        answerCollapsed: true,
+        explanationCollapsed: true
+      })
+    })
+
+    it('應該為已存在的題目返回正確狀態', () => {
+      const { setCollapsedState, getCollapsedState } = useCollapsedStates()
+
+      setCollapsedState(1, { answerCollapsed: false })
+      const state = getCollapsedState(1)
+
+      expect(state.answerCollapsed).toBe(false)
+      expect(state.explanationCollapsed).toBe(true) // 保持原有值
+    })
+  })
+
+  describe('setCollapsedState', () => {
+    it('應該正確設定題目的摺疊狀態', () => {
+      const { setCollapsedState, getCollapsedState } = useCollapsedStates()
+
+      setCollapsedState(1, { answerCollapsed: false, explanationCollapsed: false })
+      const state = getCollapsedState(1)
+
+      expect(state).toEqual({
+        answerCollapsed: false,
+        explanationCollapsed: false
+      })
+    })
+
+    it('應該支援部分更新', () => {
+      const { setCollapsedState, getCollapsedState } = useCollapsedStates()
+
+      // 先設定完整狀態
+      setCollapsedState(1, { answerCollapsed: false, explanationCollapsed: false })
+
+      // 只更新其中一個屬性
+      setCollapsedState(1, { answerCollapsed: true })
+
+      const state = getCollapsedState(1)
+      expect(state.answerCollapsed).toBe(true)
+      expect(state.explanationCollapsed).toBe(false) // 保持不變
+    })
+  })
+
+  describe('切換操作', () => {
+    it('toggleAnswer 應該切換答案顯示狀態', () => {
+      const { toggleAnswer, getCollapsedState } = useCollapsedStates()
+
+      // 初始狀態應該是摺疊的
+      let state = getCollapsedState(1)
+      expect(state.answerCollapsed).toBe(true)
+
+      // 第一次切換，應該展開
+      toggleAnswer(1)
+      state = getCollapsedState(1)
+      expect(state.answerCollapsed).toBe(false)
+
+      // 第二次切換，應該摺疊
+      toggleAnswer(1)
+      state = getCollapsedState(1)
+      expect(state.answerCollapsed).toBe(true)
+    })
+
+    it('toggleExplanation 應該切換詳解顯示狀態', () => {
+      const { toggleExplanation, getCollapsedState } = useCollapsedStates()
+
+      // 初始狀態應該是摺疊的
+      let state = getCollapsedState(1)
+      expect(state.explanationCollapsed).toBe(true)
+
+      // 第一次切換，應該展開
+      toggleExplanation(1)
+      state = getCollapsedState(1)
+      expect(state.explanationCollapsed).toBe(false)
+
+      // 第二次切換，應該摺疊
+      toggleExplanation(1)
+      state = getCollapsedState(1)
+      expect(state.explanationCollapsed).toBe(true)
+    })
+  })
+
+  describe('顯示/隱藏操作', () => {
+    it('showAnswer 應該顯示答案', () => {
+      const { showAnswer, getCollapsedState } = useCollapsedStates()
+
+      showAnswer(1)
+      const state = getCollapsedState(1)
+      expect(state.answerCollapsed).toBe(false)
+    })
+
+    it('hideAnswer 應該隱藏答案', () => {
+      const { showAnswer, hideAnswer, getCollapsedState } = useCollapsedStates()
+
+      // 先顯示答案
+      showAnswer(1)
+      expect(getCollapsedState(1).answerCollapsed).toBe(false)
+
+      // 然後隱藏答案
+      hideAnswer(1)
+      expect(getCollapsedState(1).answerCollapsed).toBe(true)
+    })
+
+    it('showExplanation 應該顯示詳解', () => {
+      const { showExplanation, getCollapsedState } = useCollapsedStates()
+
+      showExplanation(1)
+      const state = getCollapsedState(1)
+      expect(state.explanationCollapsed).toBe(false)
+    })
+
+    it('hideExplanation 應該隱藏詳解', () => {
+      const { showExplanation, hideExplanation, getCollapsedState } = useCollapsedStates()
+
+      // 先顯示詳解
+      showExplanation(1)
+      expect(getCollapsedState(1).explanationCollapsed).toBe(false)
+
+      // 然後隱藏詳解
+      hideExplanation(1)
+      expect(getCollapsedState(1).explanationCollapsed).toBe(true)
+    })
+
+    it('showAll 應該同時顯示答案和詳解', () => {
+      const { showAll, getCollapsedState } = useCollapsedStates()
+
+      showAll(1)
+      const state = getCollapsedState(1)
+      expect(state.answerCollapsed).toBe(false)
+      expect(state.explanationCollapsed).toBe(false)
+    })
+
+    it('hideAll 應該同時隱藏答案和詳解', () => {
+      const { showAll, hideAll, getCollapsedState } = useCollapsedStates()
+
+      // 先顯示全部
+      showAll(1)
+      expect(getCollapsedState(1).answerCollapsed).toBe(false)
+      expect(getCollapsedState(1).explanationCollapsed).toBe(false)
+
+      // 然後隱藏全部
+      hideAll(1)
+      const state = getCollapsedState(1)
+      expect(state.answerCollapsed).toBe(true)
+      expect(state.explanationCollapsed).toBe(true)
+    })
+  })
+
+  describe('重置操作', () => {
+    it('resetCollapsedState 應該重置單個題目狀態', () => {
+      const { showAll, resetCollapsedState, getCollapsedState } = useCollapsedStates()
+
+      // 先設定非預設狀態
+      showAll(1)
+      expect(getCollapsedState(1)).toEqual({
+        answerCollapsed: false,
+        explanationCollapsed: false
+      })
+
+      // 重置狀態
+      resetCollapsedState(1)
+      expect(getCollapsedState(1)).toEqual({
+        answerCollapsed: true,
+        explanationCollapsed: true
+      })
+    })
+
+    it('resetAll 應該重置所有題目狀態', () => {
+      const { showAll, resetAll, getCollapsedState } = useCollapsedStates()
+
+      // 設定多個題目的狀態
+      showAll(1)
+      showAll(2)
+      showAll(3)
+
+      // 重置所有狀態
+      resetAll()
+
+      // 檢查所有題目都回到預設狀態
+      expect(getCollapsedState(1)).toEqual({
+        answerCollapsed: true,
+        explanationCollapsed: true
+      })
+      expect(getCollapsedState(2)).toEqual({
+        answerCollapsed: true,
+        explanationCollapsed: true
+      })
+      expect(getCollapsedState(3)).toEqual({
+        answerCollapsed: true,
+        explanationCollapsed: true
+      })
+    })
+  })
+
+  describe('批次操作', () => {
+    it('setBatchCollapsedState 應該批次設定多個題目狀態', () => {
+      const { setBatchCollapsedState, getCollapsedState } = useCollapsedStates()
+
+      setBatchCollapsedState([1, 2, 3], { answerCollapsed: false })
+
+      expect(getCollapsedState(1).answerCollapsed).toBe(false)
+      expect(getCollapsedState(2).answerCollapsed).toBe(false)
+      expect(getCollapsedState(3).answerCollapsed).toBe(false)
+    })
+
+    it('showAllAnswersOnPage 應該顯示頁面所有題目的答案', () => {
+      const { showAllAnswersOnPage, getCollapsedState } = useCollapsedStates()
+
+      showAllAnswersOnPage([1, 2, 3])
+
+      expect(getCollapsedState(1).answerCollapsed).toBe(false)
+      expect(getCollapsedState(2).answerCollapsed).toBe(false)
+      expect(getCollapsedState(3).answerCollapsed).toBe(false)
+    })
+
+    it('hideAllAnswersOnPage 應該隱藏頁面所有題目的答案', () => {
+      const { showAllAnswersOnPage, hideAllAnswersOnPage, getCollapsedState } = useCollapsedStates()
+
+      // 先顯示答案
+      showAllAnswersOnPage([1, 2, 3])
+
+      // 然後隱藏答案
+      hideAllAnswersOnPage([1, 2, 3])
+
+      expect(getCollapsedState(1).answerCollapsed).toBe(true)
+      expect(getCollapsedState(2).answerCollapsed).toBe(true)
+      expect(getCollapsedState(3).answerCollapsed).toBe(true)
+    })
+  })
+
+  describe('統計資訊', () => {
+    it('getCollapsedStatesStats 應該返回正確的統計資訊', () => {
+      const { showAnswer, showExplanation, showAll, getCollapsedStatesStats } = useCollapsedStates()
+
+      // 設定不同的狀態
+      showAnswer(1) // 只顯示答案
+      showExplanation(2) // 只顯示詳解
+      showAll(3) // 顯示全部
+      // 題目 4 保持預設狀態（全部隱藏）
+
+      const stats = getCollapsedStatesStats()
+
+      expect(stats.totalQuestions).toBe(4)
+      expect(stats.answersVisible).toBe(2) // 題目 1 和 3
+      expect(stats.explanationsVisible).toBe(2) // 題目 2 和 3
+      expect(stats.bothVisible).toBe(1) // 題目 3
+      expect(stats.bothHidden).toBe(1) // 題目 4
+    })
+  })
+
+  describe('清理操作', () => {
+    it('cleanupCollapsedStates 應該移除無效題目的狀態', () => {
+      const { showAll, cleanupCollapsedStates, collapsedStates } = useCollapsedStates()
+
+      // 設定多個題目狀態
+      showAll(1)
+      showAll(2)
+      showAll(3)
+      showAll(999) // 無效題目
+
+      // 清理，只保留題目 1 和 2
+      cleanupCollapsedStates([1, 2])
+
+      // 檢查只剩下有效題目
+      expect(1 in collapsedStates).toBe(true)
+      expect(2 in collapsedStates).toBe(true)
+      expect(3 in collapsedStates).toBe(false)
+      expect(999 in collapsedStates).toBe(false)
+    })
+  })
+
+  describe('localStorage 持久化', () => {
+    it('狀態變更應該自動儲存到 localStorage', () => {
+      const { setCollapsedState } = useCollapsedStates()
+
+      setCollapsedState(1, { answerCollapsed: false })
+
+      // 等待防抖延遲
+      vi.advanceTimersByTime(300)
+
+      expect(localStorageMock.setItem).toHaveBeenCalledWith(
+        'aws-exam-collapsed-states',
+        expect.stringContaining('"answerCollapsed":false')
+      )
+    })
+
+    it('應該處理 localStorage 儲存錯誤', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      localStorageMock.setItem.mockImplementation(() => {
+        throw new Error('Storage quota exceeded')
+      })
+
+      const { setCollapsedState } = useCollapsedStates()
+      setCollapsedState(1, { answerCollapsed: false })
+
+      // 等待防抖延遲
+      vi.advanceTimersByTime(300)
+
+      expect(consoleSpy).toHaveBeenCalledWith('儲存摺疊狀態失敗:', expect.any(Error))
+      consoleSpy.mockRestore()
+    })
+
+    it('應該處理 localStorage 載入錯誤', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      localStorageMock.getItem.mockImplementation(() => {
+        throw new Error('Storage access denied')
+      })
+
+      const { getCollapsedState } = useCollapsedStates()
+      const state = getCollapsedState(1)
+
+      expect(consoleSpy).toHaveBeenCalledWith('載入摺疊狀態失敗:', expect.any(Error))
+      expect(state).toEqual({ answerCollapsed: true, explanationCollapsed: true })
+      consoleSpy.mockRestore()
+    })
+  })
+
+  describe('資料驗證', () => {
+    it('應該過濾無效的儲存資料', () => {
+      const invalidData = {
+        '1': { answerCollapsed: false, explanationCollapsed: true }, // 有效
+        '2': { answerCollapsed: 'invalid' }, // 無效：類型錯誤
+        'invalid': { answerCollapsed: true, explanationCollapsed: true }, // 無效：鍵不是數字
+        '3': null, // 無效：值為 null
+        '4': { answerCollapsed: true } // 無效：缺少 explanationCollapsed
+      }
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(invalidData))
+
+      const { getCollapsedState } = useCollapsedStates()
+
+      // 只有題目 1 應該被載入
+      expect(getCollapsedState(1)).toEqual({ answerCollapsed: false, explanationCollapsed: true })
+
+      // 其他題目應該使用預設狀態
+      expect(getCollapsedState(2)).toEqual({ answerCollapsed: true, explanationCollapsed: true })
+      expect(getCollapsedState(3)).toEqual({ answerCollapsed: true, explanationCollapsed: true })
+      expect(getCollapsedState(4)).toEqual({ answerCollapsed: true, explanationCollapsed: true })
+    })
+  })
+})

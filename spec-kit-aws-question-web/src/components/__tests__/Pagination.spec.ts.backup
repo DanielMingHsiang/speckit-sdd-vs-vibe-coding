@@ -1,0 +1,453 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+import Pagination from '../Pagination.vue'
+
+// Mock composables
+const mockPaginationInfo = {
+  currentPage: 1,
+  totalPages: 5,
+  itemsPerPage: 5,
+  totalItems: 23,
+  hasNextPage: true,
+  hasPreviousPage: false
+}
+
+const mockPageRangeInfo = {
+  rangeText: '1-5',
+  startItem: 1,
+  endItem: 5
+}
+
+const mockPaginationButtons = [
+  { page: 1, isCurrent: true, isEllipsis: false },
+  { page: 2, isCurrent: false, isEllipsis: false },
+  { page: 3, isCurrent: false, isEllipsis: false },
+  { page: 4, isCurrent: false, isEllipsis: false },
+  { page: 5, isCurrent: false, isEllipsis: false }
+]
+
+const mockGoToPage = vi.fn()
+const mockNextPage = vi.fn()
+const mockPreviousPage = vi.fn()
+const mockGoToFirstPage = vi.fn()
+const mockGoToLastPage = vi.fn()
+
+vi.mock('@/composables/useLanguage', () => ({
+  useLanguage: () => ({
+    getText: (key: string) => {
+      const translations: Record<string, string> = {
+        'pagination.questions': '題',
+        'pagination.page': '第',
+        'pagination.navigation': '分頁導航',
+        'pagination.firstPage': '第一頁',
+        'pagination.first': '首頁',
+        'pagination.previousPage': '上一頁',
+        'pagination.previous': '上一頁',
+        'pagination.nextPage': '下一頁',
+        'pagination.next': '下一頁',
+        'pagination.lastPage': '最後一頁',
+        'pagination.last': '末頁',
+        'pagination.goToPage': '前往第 {0} 頁',
+        'pagination.jumpTo': '跳至',
+        'pagination.pageNumber': '頁碼',
+        'pagination.jumpButton': '跳轉按鈕',
+        'pagination.go': '前往',
+        'pagination.prev': '上一頁'
+      }
+      return translations[key] || key
+    }
+  }),
+  formatText: (template: string, ...args: string[]) => {
+    return template.replace(/{(\d+)}/g, (match, index) => args[index] || match)
+  }
+}))
+
+vi.mock('@/composables/usePagination', () => ({
+  usePagination: () => ({
+    paginationInfo: { value: mockPaginationInfo },
+    pageRangeInfo: { value: mockPageRangeInfo },
+    paginationButtons: { value: mockPaginationButtons },
+    shouldShowPagination: { value: true },
+    goToPage: mockGoToPage,
+    nextPage: mockNextPage,
+    previousPage: mockPreviousPage,
+    goToFirstPage: mockGoToFirstPage,
+    goToLastPage: mockGoToLastPage
+  })
+}))
+
+describe('Pagination', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('基本渲染', () => {
+    it('應該正確渲染分頁資訊', () => {
+      const wrapper = mount(Pagination)
+
+      // 檢查頁面範圍資訊
+      expect(wrapper.find('.range-text').text()).toBe('1-5')
+      expect(wrapper.find('.questions-text').text()).toBe('題')
+
+      // 檢查當前頁面資訊
+      expect(wrapper.find('.page-number').text()).toBe('1')
+      expect(wrapper.find('.total-pages').text()).toBe('5')
+    })
+
+    it('應該渲染所有導航按鈕', () => {
+      const wrapper = mount(Pagination)
+
+      // 檢查導航按鈕
+      expect(wrapper.find('.first-page').exists()).toBe(true)
+      expect(wrapper.find('.previous-page').exists()).toBe(true)
+      expect(wrapper.find('.next-page').exists()).toBe(true)
+      expect(wrapper.find('.last-page').exists()).toBe(true)
+
+      // 檢查頁碼按鈕
+      const pageButtons = wrapper.findAll('.page-number')
+      expect(pageButtons).toHaveLength(5)
+      expect(pageButtons[0].text()).toBe('1')
+      expect(pageButtons[4].text()).toBe('5')
+    })
+
+    it('應該渲染快速跳轉控制項', () => {
+      const wrapper = mount(Pagination)
+
+      expect(wrapper.find('.quick-jump').exists()).toBe(true)
+      expect(wrapper.find('.jump-input').exists()).toBe(true)
+      expect(wrapper.find('.jump-button').exists()).toBe(true)
+    })
+
+    it('應該渲染行動版控制項', () => {
+      const wrapper = mount(Pagination)
+
+      expect(wrapper.find('.mobile-pagination').exists()).toBe(true)
+      expect(wrapper.find('.mobile-previous').exists()).toBe(true)
+      expect(wrapper.find('.mobile-next').exists()).toBe(true)
+      expect(wrapper.find('.mobile-page-info').text()).toBe('1 / 5')
+    })
+  })
+
+  describe('按鈕狀態', () => {
+    it('在第一頁時應該禁用上一頁和首頁按鈕', () => {
+      const wrapper = mount(Pagination)
+
+      expect(wrapper.find('.first-page').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('.previous-page').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('.next-page').attributes('disabled')).toBeUndefined()
+      expect(wrapper.find('.last-page').attributes('disabled')).toBeUndefined()
+    })
+
+    it('在最後一頁時應該禁用下一頁和末頁按鈕', () => {
+      const lastPagePaginationInfo = {
+        ...mockPaginationInfo,
+        currentPage: 5,
+        hasNextPage: false,
+        hasPreviousPage: true
+      }
+
+      vi.mocked(vi.importMock('@/composables/usePagination')).mockReturnValue({
+        usePagination: () => ({
+          paginationInfo: { value: lastPagePaginationInfo },
+          pageRangeInfo: { value: mockPageRangeInfo },
+          paginationButtons: { value: mockPaginationButtons },
+          shouldShowPagination: { value: true },
+          goToPage: mockGoToPage,
+          nextPage: mockNextPage,
+          previousPage: mockPreviousPage,
+          goToFirstPage: mockGoToFirstPage,
+          goToLastPage: mockGoToLastPage
+        })
+      })
+
+      const wrapper = mount(Pagination)
+
+      expect(wrapper.find('.first-page').attributes('disabled')).toBeUndefined()
+      expect(wrapper.find('.previous-page').attributes('disabled')).toBeUndefined()
+      expect(wrapper.find('.next-page').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('.last-page').attributes('disabled')).toBeDefined()
+    })
+
+    it('當前頁面按鈕應該有正確的樣式類別', () => {
+      const wrapper = mount(Pagination)
+
+      const pageButtons = wrapper.findAll('.page-number')
+      expect(pageButtons[0].classes()).toContain('current-page')
+      expect(pageButtons[1].classes()).toContain('other-page')
+    })
+  })
+
+  describe('導航功能', () => {
+    it('點擊首頁按鈕應該呼叫 goToFirstPage', async () => {
+      const wrapper = mount(Pagination)
+
+      await wrapper.find('.first-page').trigger('click')
+      expect(mockGoToFirstPage).toHaveBeenCalled()
+    })
+
+    it('點擊上一頁按鈕應該呼叫 previousPage', async () => {
+      const wrapper = mount(Pagination)
+
+      await wrapper.find('.previous-page').trigger('click')
+      expect(mockPreviousPage).toHaveBeenCalled()
+    })
+
+    it('點擊下一頁按鈕應該呼叫 nextPage', async () => {
+      const wrapper = mount(Pagination)
+
+      await wrapper.find('.next-page').trigger('click')
+      expect(mockNextPage).toHaveBeenCalled()
+    })
+
+    it('點擊末頁按鈕應該呼叫 goToLastPage', async () => {
+      const wrapper = mount(Pagination)
+
+      await wrapper.find('.last-page').trigger('click')
+      expect(mockGoToLastPage).toHaveBeenCalled()
+    })
+
+    it('點擊頁碼按鈕應該呼叫 goToPage 並傳入正確頁數', async () => {
+      const wrapper = mount(Pagination)
+
+      const pageButtons = wrapper.findAll('.page-number')
+      await pageButtons[2].trigger('click') // 點擊第3頁
+
+      expect(mockGoToPage).toHaveBeenCalledWith(3)
+    })
+  })
+
+  describe('事件發送', () => {
+    it('頁面變更時應該發送 pageChanged 事件', async () => {
+      // 模擬頁面變更
+      mockPaginationInfo.currentPage = 2
+      mockGoToPage.mockImplementation(() => {
+        mockPaginationInfo.currentPage = 2
+      })
+
+      const wrapper = mount(Pagination)
+
+      await wrapper.find('.next-page').trigger('click')
+
+      // 檢查事件是否被發送
+      expect(wrapper.emitted('pageChanged')).toBeTruthy()
+      expect(wrapper.emitted('paginationAction')).toBeTruthy()
+    })
+
+    it('應該發送正確的 paginationAction 事件', async () => {
+      const wrapper = mount(Pagination)
+
+      // 測試不同的操作
+      await wrapper.find('.next-page').trigger('click')
+      await wrapper.find('.previous-page').trigger('click')
+
+      const paginationActions = wrapper.emitted('paginationAction')
+      expect(paginationActions).toBeTruthy()
+    })
+  })
+
+  describe('快速跳轉功能', () => {
+    it('應該正確驗證跳轉頁面輸入', async () => {
+      const wrapper = mount(Pagination)
+
+      const jumpInput = wrapper.find('.jump-input')
+      const jumpButton = wrapper.find('.jump-button')
+
+      // 空輸入時按鈕應該被禁用
+      expect(jumpButton.attributes('disabled')).toBeDefined()
+
+      // 輸入有效頁碼
+      await jumpInput.setValue('3')
+      expect(jumpButton.attributes('disabled')).toBeUndefined()
+
+      // 輸入無效頁碼（超出範圍）
+      await jumpInput.setValue('10')
+      expect(jumpButton.attributes('disabled')).toBeDefined()
+
+      // 輸入當前頁碼
+      await jumpInput.setValue('1')
+      expect(jumpButton.attributes('disabled')).toBeDefined()
+    })
+
+    it('點擊跳轉按鈕應該呼叫 goToPage', async () => {
+      const wrapper = mount(Pagination)
+
+      const jumpInput = wrapper.find('.jump-input')
+      const jumpButton = wrapper.find('.jump-button')
+
+      await jumpInput.setValue('3')
+      await jumpButton.trigger('click')
+
+      expect(mockGoToPage).toHaveBeenCalledWith(3)
+    })
+
+    it('按 Enter 鍵應該觸發跳轉', async () => {
+      const wrapper = mount(Pagination)
+
+      const jumpInput = wrapper.find('.jump-input')
+
+      await jumpInput.setValue('4')
+      await jumpInput.trigger('keyup.enter')
+
+      expect(mockGoToPage).toHaveBeenCalledWith(4)
+    })
+
+    it('失去焦點時應該觸發跳轉', async () => {
+      const wrapper = mount(Pagination)
+
+      const jumpInput = wrapper.find('.jump-input')
+
+      await jumpInput.setValue('2')
+      await jumpInput.trigger('blur')
+
+      expect(mockGoToPage).toHaveBeenCalledWith(2)
+    })
+
+    it('跳轉後應該清空輸入框', async () => {
+      const wrapper = mount(Pagination)
+
+      const jumpInput = wrapper.find('.jump-input')
+      const jumpButton = wrapper.find('.jump-button')
+
+      await jumpInput.setValue('3')
+      await jumpButton.trigger('click')
+
+      // 檢查輸入框是否被清空
+      expect((jumpInput.element as HTMLInputElement).value).toBe('')
+    })
+  })
+
+  describe('行動版功能', () => {
+    it('行動版上一頁按鈕應該正常工作', async () => {
+      const wrapper = mount(Pagination)
+
+      await wrapper.find('.mobile-previous').trigger('click')
+      expect(mockPreviousPage).toHaveBeenCalled()
+    })
+
+    it('行動版下一頁按鈕應該正常工作', async () => {
+      const wrapper = mount(Pagination)
+
+      await wrapper.find('.mobile-next').trigger('click')
+      expect(mockNextPage).toHaveBeenCalled()
+    })
+
+    it('行動版應該顯示正確的頁面資訊', () => {
+      const wrapper = mount(Pagination)
+
+      expect(wrapper.find('.mobile-page-info').text()).toBe('1 / 5')
+    })
+  })
+
+  describe('無障礙功能', () => {
+    it('導航區域應該有正確的 aria-label', () => {
+      const wrapper = mount(Pagination)
+
+      expect(wrapper.find('.pagination-nav').attributes('aria-label')).toBe('分頁導航')
+    })
+
+    it('當前頁面按鈕應該有 aria-current 屬性', () => {
+      const wrapper = mount(Pagination)
+
+      const currentPageButton = wrapper.find('.current-page')
+      expect(currentPageButton.attributes('aria-current')).toBe('page')
+    })
+
+    it('其他頁面按鈕不應該有 aria-current 屬性', () => {
+      const wrapper = mount(Pagination)
+
+      const otherPageButtons = wrapper.findAll('.other-page')
+      otherPageButtons.forEach(button => {
+        expect(button.attributes('aria-current')).toBeUndefined()
+      })
+    })
+
+    it('所有導航按鈕應該有適當的 aria-label', () => {
+      const wrapper = mount(Pagination)
+
+      expect(wrapper.find('.first-page').attributes('aria-label')).toBe('第一頁')
+      expect(wrapper.find('.previous-page').attributes('aria-label')).toBe('上一頁')
+      expect(wrapper.find('.next-page').attributes('aria-label')).toBe('下一頁')
+      expect(wrapper.find('.last-page').attributes('aria-label')).toBe('最後一頁')
+    })
+
+    it('快速跳轉輸入框應該有正確的標籤關聯', () => {
+      const wrapper = mount(Pagination)
+
+      const label = wrapper.find('.jump-label')
+      const input = wrapper.find('.jump-input')
+
+      expect(label.attributes('for')).toBe('page-input')
+      expect(input.attributes('id')).toBe('page-input')
+    })
+  })
+
+  describe('省略號顯示', () => {
+    it('應該正確渲染省略號', () => {
+      const buttonsWithEllipsis = [
+        { page: 1, isCurrent: true, isEllipsis: false },
+        { page: 2, isCurrent: false, isEllipsis: false },
+        { page: 0, isCurrent: false, isEllipsis: true }, // 省略號
+        { page: 10, isCurrent: false, isEllipsis: false }
+      ]
+
+      vi.mocked(vi.importMock('@/composables/usePagination')).mockReturnValue({
+        usePagination: () => ({
+          paginationInfo: { value: { ...mockPaginationInfo, totalPages: 10 } },
+          pageRangeInfo: { value: mockPageRangeInfo },
+          paginationButtons: { value: buttonsWithEllipsis },
+          shouldShowPagination: { value: true },
+          goToPage: mockGoToPage,
+          nextPage: mockNextPage,
+          previousPage: mockPreviousPage,
+          goToFirstPage: mockGoToFirstPage,
+          goToLastPage: mockGoToLastPage
+        })
+      })
+
+      const wrapper = mount(Pagination)
+
+      expect(wrapper.find('.pagination-ellipsis').exists()).toBe(true)
+      expect(wrapper.find('.pagination-ellipsis').text()).toBe('...')
+    })
+  })
+
+  describe('條件渲染', () => {
+    it('當 shouldShowPagination 為 false 時不應該渲染', () => {
+      vi.mocked(vi.importMock('@/composables/usePagination')).mockReturnValue({
+        usePagination: () => ({
+          paginationInfo: { value: mockPaginationInfo },
+          pageRangeInfo: { value: mockPageRangeInfo },
+          paginationButtons: { value: mockPaginationButtons },
+          shouldShowPagination: { value: false }, // 不顯示分頁
+          goToPage: mockGoToPage,
+          nextPage: mockNextPage,
+          previousPage: mockPreviousPage,
+          goToFirstPage: mockGoToFirstPage,
+          goToLastPage: mockGoToLastPage
+        })
+      })
+
+      const wrapper = mount(Pagination)
+
+      expect(wrapper.find('.pagination-wrapper').exists()).toBe(false)
+    })
+  })
+
+  describe('輸入驗證', () => {
+    it('應該設定正確的輸入範圍', () => {
+      const wrapper = mount(Pagination)
+
+      const jumpInput = wrapper.find('.jump-input')
+      expect(jumpInput.attributes('min')).toBe('1')
+      expect(jumpInput.attributes('max')).toBe('5')
+      expect(jumpInput.attributes('type')).toBe('number')
+    })
+
+    it('應該有正確的 placeholder 文字', () => {
+      const wrapper = mount(Pagination)
+
+      const jumpInput = wrapper.find('.jump-input')
+      expect(jumpInput.attributes('placeholder')).toBe('頁碼')
+    })
+  })
+})

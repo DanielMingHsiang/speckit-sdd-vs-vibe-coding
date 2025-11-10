@@ -361,6 +361,7 @@ Claude 會互動式澄清規格模糊地帶
 - [From Vibe Coding to Spec-Driven Development](https://medium.com/@alonfliess/from-vibe-coding-to-spec-driven-development-bridging-ai-creativity-and-software-discipline-fe17f82cc77c)
 - [Spec-driven development with AI: Get started with a new open source toolkit](https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/)
 - [Using Spec-Driven Development to build consistent APIs](https://medium.com/goiabada/using-spec-driven-development-to-build-consistent-apis-e391daafae71)
+- [vibe-coding-is-cooling-off-fast](https://blog.stackademic.com/vibe-coding-is-cooling-off-fast-bd1ea2aa4adb)
 - Gemini
 ---
 
